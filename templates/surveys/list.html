@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Мои опросы{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h2>Мои опросы</h2>
+    <a href="{% url 'surveys:create' %}" class="button primary">Создать опрос</a>
+</div>
+<div class="cards">
+    {% for survey in surveys %}
+        <article class="card">
+            <header>
+                <h3>{{ survey.title }}</h3>
+                <span class="status status-{{ survey.status }}">{{ survey.get_status_display }}</span>
+            </header>
+            <p>{{ survey.description|default:"—" }}</p>
+            <p><strong>Тип:</strong> {{ survey.get_survey_type_display }}</p>
+            <p style="word-break: break-all;"><strong>Ссылка:</strong> <code>{{ base_url }}surveys/public/{{ survey.slug }}/</code></p>
+            <div class="actions">
+                <a href="{% url 'surveys:detail' survey.slug %}">Статистика</a>
+                <a href="{% url 'surveys:edit' survey.slug %}">Редактировать</a>
+                <form action="{% url 'surveys:delete' survey.slug %}" method="post" onsubmit="return confirm('Удалить опрос?')">
+                    {% csrf_token %}
+                    <button class="button danger">Удалить</button>
+                </form>
+            </div>
+        </article>
+    {% empty %}
+        <div class="card empty-state">
+            <p>Опубликуйте первый опрос!</p>
+            <a href="{% url 'surveys:create' %}" class="button primary" style="margin-top: 1rem;">Создать опрос</a>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

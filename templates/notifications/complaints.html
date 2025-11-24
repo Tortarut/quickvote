@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Жалобы{% endblock %}
+
+{% block content %}
+<h2>Жалобы пользователей</h2>
+<ul class="list">
+    {% for complaint in complaints %}
+        <li>
+            <strong>{{ complaint.survey.title }}</strong>
+            <p>{{ complaint.text }}</p>
+            <small>{{ complaint.created_at|date:"d.m.Y H:i" }}</small>
+        </li>
+    {% empty %}
+        <li>Жалоб нет</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+

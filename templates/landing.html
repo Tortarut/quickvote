@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}QuickVote — онлайн-опросы{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Создавайте сложные опросы без кода</h1>
+    <p>Анонимные и публичные голосования, аналитика в реальном времени, шаблоны и уведомления.</p>
+    {% if not user.is_authenticated %}
+        <a href="{% url 'users:register' %}" class="button primary">Начать бесплатно</a>
+    {% else %}
+        <a href="{% url 'dashboard' %}" class="button primary">Перейти в дашборд</a>
+    {% endif %}
+</section>
+
+<section class="features-grid">
+    <article>
+        <h3>Гибкие вопросы</h3>
+        <p>Один или несколько ответов, текстовые поля и рейтинги с валидацией.</p>
+    </article>
+    <article>
+        <h3>Безопасность</h3>
+        <p>Контроль повторных голосов по учетным записям.</p>
+    </article>
+    <article>
+        <h3>Аналитика</h3>
+        <p>Графики, экспорт результатов и корреляции ответов.</p>
+    </article>
+    <article>
+        <h3>Шаблоны</h3>
+        <p>Готовые сценарии для маркетинга, образования и обратной связи.</p>
+    </article>
+</section>
+{% endblock %}
+

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Шаблоны опросов{% endblock %}
+
+{% block content %}
+<h2>Готовые шаблоны</h2>
+<div class="cards">
+    {% for tpl in templates %}
+        <article class="card">
+            <h3>{{ tpl.title }}</h3>
+            <p>{{ tpl.description }}</p>
+            <button class="button" data-template="{{ tpl.id }}">Использовать</button>
+        </article>
+    {% endfor %}
+</div>
+{% endblock %}
+

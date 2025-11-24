@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}История активности{% endblock %}
+
+{% block content %}
+<div class="grid two-columns">
+    <section class="card">
+        <h3>Созданные опросы</h3>
+        <ul>
+            {% for survey in created_surveys %}
+                <li>
+                    <a href="{% url 'surveys:detail' survey.slug %}">{{ survey.title }}</a>
+                    <small>{{ survey.created_at|date:"d.m.Y H:i" }}</small>
+                </li>
+            {% empty %}
+                <li>Пока нет опросов</li>
+            {% endfor %}
+        </ul>
+    </section>
+    <section class="card">
+        <h3>Ваши голосования</h3>
+        <ul>
+            {% for resp in responses %}
+                <li>{{ resp.survey.title }} — {{ resp.submitted_at|date:"d.m.Y H:i" }}</li>
+            {% empty %}
+                <li>Нет данных</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}
+

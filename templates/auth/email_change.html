@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Изменение email{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Новый email</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <label>{{ form.new_email.label }} {{ form.new_email }}</label>
+        {{ form.new_email.errors }}
+        <button class="button primary">Отправить ссылку подтверждения</button>
+    </form>
+</div>
+{% endblock %}
+

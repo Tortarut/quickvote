@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Профиль</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <label>{{ field.label }} {{ field }}</label>
+            {{ field.errors }}
+        {% endfor %}
+        <button class="button primary">Сохранить</button>
+    </form>
+    <div class="actions">
+        <a href="{% url 'users:email-change' %}" class="button">Изменить email</a>
+        <a href="{% url 'users:password-change' %}" class="button">Сменить пароль</a>
+        <a href="{% url 'users:history' %}">История опросов</a>
+    </div>
+</div>
+{% endblock %}
+

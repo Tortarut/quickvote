@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Конструктор опроса{% endblock %}
+
+{% block extra_head %}
+<style>
+    #questions-container {
+        margin: var(--spacing-xl) 0;
+    }
+    
+    #add-question {
+        margin-bottom: var(--spacing-lg);
+        width: 100%;
+        padding: var(--spacing-md) var(--spacing-lg);
+        font-size: 1rem;
+        font-weight: 600;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    #add-question:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    #add-question:active {
+        transform: translateY(0);
+    }
+    
+    #survey-form {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    #survey-form > label {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    #survey-form button[type="submit"] {
+        width: 100%;
+        margin-top: var(--spacing-xl);
+        padding: var(--spacing-md) var(--spacing-lg);
+        font-size: 1rem;
+    }
+    
+    .templates-section {
+        margin-top: var(--spacing-2xl);
+        padding: var(--spacing-xl);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+    }
+    
+    .templates-section h3 {
+        margin-top: 0;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .templates-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .templates-section li {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+        background: var(--bg);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border);
+    }
+    
+    .templates-section li:hover {
+        background: var(--primary-light);
+        border-color: var(--primary);
+        transform: translateX(4px);
+    }
+    
+    .templates-section li:last-child {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Конструктор опросов</h2>
+<p>Добавляйте вопросы, настраивайте типы ответов и публикуйте ссылку.</p>
+
+<div id="builder"></div>
+
+<template id="question-template">
+    <div class="question-block">
+        <label>Текст вопроса <input type="text" class="q-text" maxlength="500" required></label>
+        <label>Тип
+            <select class="q-type">
+                <option value="single">Один ответ</option>
+                <option value="multiple">Несколько ответов</option>
+                <option value="text">Текст</option>
+                <option value="rating">Рейтинг 1-5</option>
+            </select>
+        </label>
+        <label><input type="checkbox" class="q-required" checked> Обязательный</label>
+        <div class="choices"></div>
+        <button type="button" class="button small add-choice">Добавить вариант</button>
+        <button type="button" class="button danger remove-question">Удалить вопрос</button>
+    </div>
+</template>
+
+<form id="survey-form" class="card">
+    {% csrf_token %}
+    <label>Заголовок
+        <input type="text" name="title" maxlength="200" required>
+    </label>
+    <label>Описание
+        <textarea name="description" maxlength="1000"></textarea>
+    </label>
+    <label>Тип опроса
+        <select name="survey_type">
+            <option value="anonymous">Анонимный</option>
+            <option value="public">Публичный</option>
+        </select>
+    </label>
+    <label>Дата окончания
+        <input type="datetime-local" name="ends_at">
+    </label>
+    <label>Приветственное сообщение
+        <input type="text" name="welcome_message" maxlength="255">
+    </label>
+    <label>Финальное сообщение
+        <input type="text" name="thank_you_message" maxlength="255">
+    </label>
+    <div id="questions-container"></div>
+    <button type="button" id="add-question">Добавить вопрос</button>
+    <button type="submit" class="button primary">Сохранить опрос</button>
+</form>
+
+<section class="templates-section">
+    <h3>Шаблоны</h3>
+    <ul>
+        {% for tpl in templates %}
+            <li data-template="{{ tpl.id }}">{{ tpl.title }} — {{ tpl.get_category_display }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('questions-container');
+    const addBtn = document.getElementById('add-question');
+    const tmpl = document.getElementById('question-template');
+
+    function addQuestion(data = null) {
+        const clone = tmpl.content.cloneNode(true);
+        const block = clone.querySelector('.question-block');
+        const text = block.querySelector('.q-text');
+        const type = block.querySelector('.q-type');
+        const required = block.querySelector('.q-required');
+        const choicesWrap = block.querySelector('.choices');
+        const addChoiceBtn = block.querySelector('.add-choice');
+        const removeBtn = block.querySelector('.remove-question');
+
+        function addChoice(value = '') {
+            const div = document.createElement('div');
+            div.className = 'choice-row';
+            div.innerHTML = `<input type="text" class="choice-input" maxlength="200" value="${value}" required>
+                             <button type="button" class="button danger small remove-choice">×</button>`;
+            div.querySelector('.remove-choice').onclick = () => div.remove();
+            choicesWrap.appendChild(div);
+        }
+
+        addChoiceBtn.onclick = () => addChoice();
+        removeBtn.onclick = () => block.remove();
+        type.onchange = () => {
+            choicesWrap.style.display = type.value === 'text' || type.value === 'rating' ? 'none' : 'block';
+            addChoiceBtn.style.display = choicesWrap.style.display;
+        };
+
+        if (data) {
+            text.value = data.text;
+            type.value = data.question_type;
+            required.checked = data.is_required;
+            if (data.choices) data.choices.forEach(choice => addChoice(choice.label));
+        } else {
+            addChoice('Вариант 1');
+            addChoice('Вариант 2');
+        }
+
+        type.dispatchEvent(new Event('change'));
+        container.appendChild(block);
+    }
+
+    addBtn.onclick = () => addQuestion();
+    addQuestion();
+
+    document.querySelectorAll('[data-template]').forEach(node => {
+        node.addEventListener('click', async () => {
+            const id = node.getAttribute('data-template');
+            const csrftoken = document.querySelector('#survey-form [name=csrfmiddlewaretoken]').value;
+            const resp = await fetch(`/api/templates/${id}/instantiate/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': csrftoken}
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                window.location.href = `/surveys/${data.slug}/`;
+            } else {
+                alert('Не удалось применить шаблон');
+            }
+        });
+    });
+
+    document.getElementById('survey-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = {
+            title: event.target.title.value,
+            description: event.target.description.value,
+            survey_type: event.target.survey_type.value,
+            ends_at: event.target.ends_at.value ? new Date(event.target.ends_at.value).toISOString() : null,
+            welcome_message: event.target.welcome_message.value,
+            thank_you_message: event.target.thank_you_message.value,
+            questions: [...container.querySelectorAll('.question-block')].map((block, index) => {
+                const type = block.querySelector('.q-type').value;
+                const choices = (type === 'single' || type === 'multiple')
+                    ? [...block.querySelectorAll('.choice-input')].map((input, pos) => ({
+                        label: input.value,
+                        order: pos
+                    }))
+                    : [];
+                return {
+                    text: block.querySelector('.q-text').value,
+                    question_type: type,
+                    is_required: block.querySelector('.q-required').checked,
+                    order: index,
+                    choices
+                };
+            })
+        };
+
+        const csrftoken = document.querySelector('#survey-form [name=csrfmiddlewaretoken]').value;
+        const response = await fetch('/api/surveys/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+            const data = await response.json();
+            window.location.href = `/surveys/${data.slug}/`;
+        } else {
+            const err = await response.json();
+            alert('Ошибка: ' + JSON.stringify(err));
+        }
+    });
+});
+</script>
+{% endblock %}
+

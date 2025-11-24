@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Удаление опроса{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Удалить опрос "{{ survey.title }}"?</h2>
+    <p>Все вопросы и ответы будут удалены безвозвратно.</p>
+    <form method="post">
+        {% csrf_token %}
+        <button class="button danger">Удалить</button>
+        <a href="{% url 'surveys:list' %}" class="button">Отмена</a>
+    </form>
+</section>
+{% endblock %}
+

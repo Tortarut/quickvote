@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Мониторинг{% endblock %}
+
+{% block content %}
+<h2>Мониторинг системы</h2>
+<div class="grid four-columns">
+    <div class="stat-card">
+        <h4>Пользователи</h4>
+        <p>{{ users_count }}</p>
+    </div>
+    <div class="stat-card">
+        <h4>Активные опросы</h4>
+        <p>{{ active_surveys }}</p>
+    </div>
+    <div class="stat-card">
+        <h4>Голоса за 7 дней</h4>
+        <p>{{ votes_last_7_days }}</p>
+    </div>
+</div>
+<section class="card">
+    <h3>Топ опросов</h3>
+    <ul>
+        {% for survey in top_surveys %}
+            <li>{{ survey.title }} — {{ survey.votes }} голосов</li>
+        {% empty %}
+            <li>Нет данных</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
+

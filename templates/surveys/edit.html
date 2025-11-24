@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Редактирование опроса{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>{{ survey.title }}</h2>
+    {% if survey.is_editable %}
+        <p>Отредактируйте вопросы через API (см. документацию). Для простого изменения воспользуйтесь конструктором.</p>
+    {% else %}
+        <p>Этот опрос уже получил ответы. Доступно изменение описания и даты окончания.</p>
+    {% endif %}
+    <form method="post" id="limited-form">
+        {% csrf_token %}
+        <label>Описание
+            <textarea name="description" maxlength="1000">{{ survey.description }}</textarea>
+        </label>
+        <label>Дата окончания
+            <input type="datetime-local" name="ends_at" value="{{ survey.ends_at|date:'Y-m-d\\TH:i' }}">
+        </label>
+        <button class="button primary">Сохранить</button>
+    </form>
+</section>
+{% endblock %}
+

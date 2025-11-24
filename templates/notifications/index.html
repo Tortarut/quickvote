@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Уведомления{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Пороговые уведомления</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="button primary">Добавить правило</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Текущие правила</h3>
+    <ul>
+        {% for rule in rules %}
+            <li>{{ rule.survey.title }} — {{ rule.threshold }} ответов → {{ rule.email }}</li>
+        {% empty %}
+            <li>Нет правил</li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section class="card">
+    <h3>Пожаловаться на опрос</h3>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="complaint">
+        {{ complaint_form.as_p }}
+        <button class="button">Отправить жалобу</button>
+    </form>
+</section>
+{% endblock %}
+

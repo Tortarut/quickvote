@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ survey.title }}{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>{{ survey.title }}</h1>
+    <p>{{ survey.description|default:"—" }}</p>
+    <p><strong>Тип:</strong> {{ survey.get_survey_type_display }}{% if survey.ends_at %} • <strong>До:</strong> {{ survey.ends_at|date:"d.m.Y H:i" }}{% endif %}</p>
+</section>
+
+{% if survey.is_active %}
+<form id="vote-form" class="card">
+    {% csrf_token %}
+    {% for question in survey.questions.all %}
+        <fieldset>
+            <legend>
+                {{ question.text }}
+                {% if question.is_required %}<span class="required">*</span>{% endif %}
+            </legend>
+            {% if question.question_type == "single" %}
+                {% for choice in question.choices.all %}
+                    <label><input type="radio" name="question-{{ question.id }}" value="{{ choice.id }}" {% if question.is_required %}required{% endif %}> {{ choice.label }}</label>
+                {% endfor %}
+            {% elif question.question_type == "multiple" %}
+                {% for choice in question.choices.all %}
+                    <label><input type="checkbox" name="question-{{ question.id }}" value="{{ choice.id }}"> {{ choice.label }}</label>
+                {% endfor %}
+            {% elif question.question_type == "text" %}
+                <textarea name="question-{{ question.id }}" maxlength="{{ question.max_text_length }}" {% if question.is_required %}required{% endif %} placeholder="Введите ваш ответ..."></textarea>
+            {% else %}
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="range" min="1" max="5" name="question-{{ question.id }}" value="3" {% if question.is_required %}required{% endif %}>
+                    <span class="rating-value">3</span>
+                </div>
+            {% endif %}
+        </fieldset>
+    {% endfor %}
+    <div style="margin-top: 1.5rem;">
+        <button class="button primary" type="submit">Отправить</button>
+    </div>
+</form>
+{% else %}
+<section class="card">
+    <h3>Опрос завершен</h3>
+    <p>{{ survey.thank_you_message|default:"Спасибо за интерес!" }}</p>
+</section>
+{% endif %}
+
+<section class="card" id="live-stats"></section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const form = document.getElementById('vote-form');
+if (form) {
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const answers = [];
+        {% for question in survey.questions.all %}
+            (function(){
+                const qId = {{ question.id }};
+                const type = '{{ question.question_type }}';
+                const selector = `question-${qId}`;
+                if (type === 'single') {
+                    const selected = form.querySelector(`input[name="${selector}"]:checked`);
+                    if (selected) {
+                        answers.push({question: qId, selected_choices: [parseInt(selected.value)]});
+                    }
+                } else if (type === 'multiple') {
+                    const selected = [...form.querySelectorAll(`input[name="${selector}"]:checked`)].map(el => parseInt(el.value));
+                    answers.push({question: qId, selected_choices: selected});
+                } else if (type === 'text') {
+                    answers.push({question: qId, text_answer: form.querySelector(`textarea[name="${selector}"]`).value});
+                } else {
+                    answers.push({question: qId, rating_value: parseInt(form.querySelector(`input[name="${selector}"]`).value)});
+                }
+            })();
+        {% endfor %}
+        const payload = {answers};
+        const csrftoken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+        const response = await fetch('/responses/api/{{ survey.slug }}/submit/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+            window.location.href = "{% url 'responses:thank-you' %}";
+        } else {
+            const err = await response.json();
+            alert(err.detail || JSON.stringify(err));
+        }
+    });
+}
+
+async function loadStats() {
+    const res = await fetch('/responses/api/{{ survey.slug }}/stats/');
+    if (!res.ok) return;
+    const data = await res.json();
+    const wrap = document.getElementById('live-stats');
+    wrap.innerHTML = '<h3>Текущие результаты</h3>';
+    data.questions.forEach(q => {
+        const block = document.createElement('div');
+        block.innerHTML = `<strong>${q.text}</strong>`;
+        if (q.options) {
+            q.options.forEach(opt => {
+                block.innerHTML += `<div>${opt.label}: ${opt.count} (${opt.percentage}%)</div>`;
+            });
+        } else if (q.responses) {
+            block.innerHTML += '<details><summary>Ответы</summary>' + q.responses.map(r => `<p>${r}</p>`).join('') + '</details>';
+        } else {
+            block.innerHTML += `<p>Средний балл: ${q.average}</p>`;
+        }
+        wrap.appendChild(block);
+    });
+}
+loadStats();
+</script>
+{% endblock %}
+

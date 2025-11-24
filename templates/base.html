@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}QuickVote{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="theme-light">
+    <header class="app-header">
+        <a href="{% url 'home' %}" class="logo">QuickVote</a>
+        <nav>
+            <a href="{% url 'home' %}">Главная</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}">Дашборд</a>
+                <a href="{% url 'surveys:list' %}">Мои опросы</a>
+                <a href="{% url 'users:profile' %}">Профиль</a>
+                <a href="{% url 'users:logout' %}">Выйти</a>
+            {% else %}
+                <a href="{% url 'users:login' %}">Войти</a>
+                <a href="{% url 'users:register' %}" class="button primary">Зарегистрироваться</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="app-content">
+        {% include "partials/messages.html" %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+        {% now "Y" as current_year %}
+        <p>© {{ current_year }} QuickVote</p>
+    </footer>
+
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

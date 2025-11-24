@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Статистика опроса{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>{{ object.title }}</h2>
+    <p>{{ object.description|default:"—" }}</p>
+    <p><strong>Тип:</strong> {{ object.get_survey_type_display }} • <strong>Статус:</strong> <span class="status status-{{ object.status }}">{{ object.get_status_display }}</span></p>
+    <p style="word-break: break-all;"><strong>Ссылка:</strong> <code>{{ base_url }}surveys/public/{{ object.slug }}/</code></p>
+    <div style="margin-top: 1.5rem;">
+        <button class="button primary" id="load-stats">Обновить статистику</button>
+    </div>
+    <div style="margin-top: 1.5rem; overflow-x: auto;">
+        <canvas id="chart" width="600" height="400"></canvas>
+    </div>
+</section>
+
+<section id="stats-container"></section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartCanvas = document.getElementById('chart');
+const ctx = chartCanvas.getContext('2d');
+
+function renderChart(question) {
+    ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+    if (!question || !question.options) return;
+    const max = Math.max(...question.options.map(opt => opt.count), 1);
+    const barWidth = chartCanvas.width / question.options.length - 20;
+    question.options.forEach((opt, index) => {
+        const height = (opt.count / max) * (chartCanvas.height - 40);
+        const x = index * (barWidth + 20) + 20;
+        const y = chartCanvas.height - height - 20;
+        ctx.fillStyle = '#4f46e5';
+        ctx.fillRect(x, y, barWidth, height);
+        ctx.fillStyle = '#111827';
+        ctx.fillText(opt.label, x, chartCanvas.height - 5);
+    });
+}
+
+async function fetchStats() {
+    const response = await fetch(`/responses/api/{{ object.slug }}/stats/`);
+    if (!response.ok) {
+        return;
+    }
+    const data = await response.json();
+    const container = document.getElementById('stats-container');
+    container.innerHTML = '';
+    renderChart(data.questions.find(q => q.options));
+    data.questions.forEach(question => {
+        const block = document.createElement('article');
+        block.className = 'card';
+        block.innerHTML = `<h3>${question.text}</h3>`;
+        if (question.options) {
+            question.options.forEach(opt => {
+                block.innerHTML += `<div class="option-row">
+                    <span>${opt.label}</span>
+                    <div class="bar" style="width:${opt.percentage}%">${opt.count} (${opt.percentage}%)</div>
+                </div>`;
+            });
+        } else if (question.responses) {
+            block.innerHTML += '<ul>' + question.responses.map(r => `<li>${r}</li>`).join('') + '</ul>';
+        } else {
+            block.innerHTML += `<p>Средний балл: ${question.average}</p>`;
+        }
+        container.appendChild(block);
+    });
+}
+document.getElementById('load-stats').addEventListener('click', fetchStats);
+fetchStats();
+</script>
+{% endblock %}
+

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<section class="grid three-columns">
+    <div class="stat-card">
+        <h4>Активные опросы</h4>
+        <p>{{ active_surveys }}</p>
+    </div>
+    <div class="stat-card">
+        <h4>Всего ответов</h4>
+        <p>{{ responses_count }}</p>
+    </div>
+    <div class="stat-card">
+        <h4>Участники</h4>
+        <p>{{ participants }}</p>
+    </div>
+</section>
+
+<section class="card">
+    <h3>Последние ответы</h3>
+    {% if recent_responses %}
+        <ul>
+            {% for resp in recent_responses %}
+                <li><strong>{{ resp.survey.title }}</strong> — {{ resp.submitted_at|date:"d.m.Y H:i" }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="color: var(--text-secondary);">Пока нет данных</p>
+    {% endif %}
+</section>
+{% endblock %}
+
