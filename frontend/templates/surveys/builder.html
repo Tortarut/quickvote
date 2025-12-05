@@ -4,11 +4,12 @@
 {% block extra_head %}
 <style>
     #questions-container {
-        margin: var(--spacing-xl) 0;
+        margin: var(--spacing-sm) 0;
     }
     
     #add-question {
-        margin-bottom: var(--spacing-lg);
+        margin-top: var(--spacing-xs);
+        margin-bottom: var(--spacing-sm);
         width: 100%;
         padding: var(--spacing-md) var(--spacing-lg);
         font-size: 1rem;
@@ -35,15 +36,16 @@
     #survey-form {
         max-width: 900px;
         margin: 0 auto;
+        gap: var(--spacing-md) !important;
     }
     
     #survey-form > label {
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: var(--spacing-sm);
     }
     
     #survey-form button[type="submit"] {
         width: 100%;
-        margin-top: var(--spacing-xl);
+        margin-top: var(--spacing-sm);
         padding: var(--spacing-md) var(--spacing-lg);
         font-size: 1rem;
     }
@@ -85,6 +87,116 @@
     
     .templates-section li:last-child {
         margin-bottom: 0;
+    }
+    
+    /* Стили для блоков вопросов */
+    .question-block {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-sm) !important;
+    }
+    
+    .question-block:last-child {
+        margin-bottom: 0 !important;
+    }
+    
+    .question-block > label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        margin-bottom: 0;
+    }
+    
+    /* Чекбокс "Обязательный" */
+    .question-block > label:has(input[type="checkbox"]),
+    .question-block label:has(.q-required) {
+        flex-direction: row;
+        align-items: center;
+        gap: var(--spacing-sm);
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: var(--spacing-xs);
+    }
+    
+    .question-block input[type="checkbox"],
+    .question-block .q-required {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        cursor: pointer;
+        accent-color: var(--primary);
+        flex-shrink: 0;
+        border-radius: 4px;
+    }
+    
+    .question-block input[type="checkbox"]:checked {
+        background-color: var(--primary);
+    }
+    
+    /* Кнопки в блоке вопроса */
+    .question-block .button {
+        margin: 0;
+        align-self: flex-start;
+        font-family: inherit;
+    }
+    
+    .question-block .add-choice {
+        margin-top: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .question-block .remove-question {
+        margin-top: var(--spacing-md);
+        align-self: flex-end;
+    }
+    
+    /* Группировка кнопок */
+    .question-block .button-group {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-md);
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* Контейнер для вариантов ответов */
+    .question-block .choices {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    /* Строка варианта ответа */
+    .question-block .choice-row {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .question-block .choice-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .question-block .choice-row .choice-input {
+        flex: 1;
+        margin: 0;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.9375rem;
+    }
+    
+    .question-block .choice-row .remove-choice {
+        flex-shrink: 0;
+        min-width: 36px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        font-size: 1.25rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
 {% endblock %}
@@ -188,7 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
             text.value = data.text;
             type.value = data.question_type;
             required.checked = data.is_required;
-            if (data.choices) data.choices.forEach(choice => addChoice(choice.label));
+            // Добавляем варианты только для типов, которые их поддерживают
+            if (data.choices && data.question_type !== 'text' && data.question_type !== 'rating') {
+                data.choices.forEach(choice => addChoice(choice.label));
+            }
         } else {
             addChoice('Вариант 1');
             addChoice('Вариант 2');
@@ -204,15 +319,69 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-template]').forEach(node => {
         node.addEventListener('click', async () => {
             const id = node.getAttribute('data-template');
-            const csrftoken = document.querySelector('#survey-form [name=csrfmiddlewaretoken]').value;
-            const resp = await fetch(`/api/templates/${id}/instantiate/`, {
-                method: 'POST',
-                headers: {'X-CSRFToken': csrftoken}
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                window.location.href = `/surveys/${data.slug}/`;
-            } else {
+            
+            // Показываем индикатор загрузки
+            const originalText = node.textContent;
+            node.textContent = 'Загрузка...';
+            node.style.opacity = '0.6';
+            
+            try {
+                const resp = await fetch(`/api/templates/${id}/`);
+                if (resp.ok) {
+                    const template = await resp.json();
+                    const payload = template.payload;
+                    
+                    // Заполняем основную форму
+                    const form = document.getElementById('survey-form');
+                    form.title.value = payload.title || template.title;
+                    form.description.value = payload.description || template.description;
+                    form.survey_type.value = payload.survey_type || 'anonymous';
+                    
+                    if (payload.ends_at) {
+                        const date = new Date(payload.ends_at);
+                        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                        form.ends_at.value = localDate.toISOString().slice(0, 16);
+                    } else {
+                        form.ends_at.value = '';
+                    }
+                    
+                    form.welcome_message.value = payload.welcome_message || '';
+                    form.thank_you_message.value = payload.thank_you_message || '';
+                    
+                    // Очищаем существующие вопросы
+                    container.innerHTML = '';
+                    
+                    // Добавляем вопросы из шаблона
+                    if (payload.questions && payload.questions.length > 0) {
+                        payload.questions.forEach((qData, index) => {
+                            const questionData = {
+                                text: qData.text || '',
+                                question_type: qData.question_type || 'single',
+                                is_required: qData.is_required !== undefined ? qData.is_required : true,
+                                choices: qData.choices || []
+                            };
+                            addQuestion(questionData);
+                        });
+                    } else {
+                        // Если вопросов нет, добавляем один пустой
+                        addQuestion();
+                    }
+                    
+                    // Восстанавливаем текст шаблона
+                    node.textContent = originalText;
+                    node.style.opacity = '1';
+                    
+                    // Прокручиваем к началу формы
+                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    node.textContent = originalText;
+                    node.style.opacity = '1';
+                    alert('Не удалось загрузить шаблон');
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке шаблона:', error);
+                node.textContent = originalText;
+                node.style.opacity = '1';
                 alert('Не удалось применить шаблон');
             }
         });

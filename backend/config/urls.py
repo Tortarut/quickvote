@@ -30,8 +30,8 @@ urlpatterns = [
     path("auth/", include(("users.urls", "users"), namespace="users")),
     path("surveys/", include(("surveys.urls", "surveys"), namespace="surveys")),
     path("responses/", include(("responses.urls", "responses"), namespace="responses")),
-    path("analytics/", include(("analytics.urls", "analytics"), namespace="analytics")),
-    path("notifications/", include(("notifications.urls", "notifications"), namespace="notifications")),
+    #path("analytics/", include(("analytics.urls", "analytics"), namespace="analytics")),
+    #path("notifications/", include(("notifications.urls", "notifications"), namespace="notifications")),
     path("api/", include("config.api_urls")),
 ]
 
